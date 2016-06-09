@@ -2,6 +2,11 @@
 
 from sage.all import * # importar tudo do sage
 
+#def. pairing
+def pairing(p1, p2):
+	return (E2(p1).weil_pairing(E2(-p2[0], alpha*p2[1]), ZZ(r)))
+
+
 def construirT(listaRaizes):
 	x = var('x')
 	t = 0
@@ -27,7 +32,7 @@ def construirConjPolinomios(ops,V,W,Y,nRaizes):
 			contaOps += 1
 
 		elif ops[i].split(' ', 1)[0] == "mult":
-			contaRaiz += 1 # diz em que gate mutiplicacao estamos,os polinomios tem que ter valor 1 nesta raiz e zero nas outras
+			contaRaiz += 1 # diz em que gate mutiplicacao estamos,
 			
 			###   V
 			aux = []
@@ -151,9 +156,9 @@ def construirConjPolinomios(ops,V,W,Y,nRaizes):
 	#um indice nos vetors de polinomios ter o valor "#" siginica que nesse indice a operaçao nao é esquerda,direita ou resultado de uma mult (raiz)
 	for i in range(0,len(V)):
 		if V[i] == '#':
-			V[i] = 0
+			V[i] = P.lagrange_polynomial([(1,0),(2,0)])
 		if W[i] == '#':
-			W[i] = 0
+			W[i] = P.lagrange_polynomial([(1,0),(2,0)])
 
 	return V,W,Y
 
@@ -165,7 +170,8 @@ W = []
 Y = []
 
 
-Zn = IntegerModRing(111)
+r = 730750818665451621361119245571504901405976559617
+Zn = IntegerModRing(r)
 P = PolynomialRing(QQ, 'x') 
 
 condicao = True # condicao do ciclo que vai receber as linhas de texto do ficheiro
@@ -174,14 +180,17 @@ outPut = None # se no fim outPut for None então algo correu mal ou entao nao fo
 ops = [] # vetor que guarda as operaçoes vindas do ficheiro (operaçoes são: input x,add x y,mult x y)
 valores = [] # valores de todas as operacoes
 C = [] # valores dos inputs e dos resultados das multiplicacoes, ira ser usado na construcaao do polinomio p
+Imid = [] #guarda os indices das operacoes de mult que nao sao inputs nem outputs
 nRaizes = 0
 contaAdd = 0
+N = 0
 
 try:
 	strLida = raw_input()
 	while condicao :
 		# [0] = "input"            [1] = valor do input
 		if strLida.split(' ', 1)[0] == "input":
+			N+=1
 			ops.append(strLida)
 			# vai buscar o valor do input e passa para inteiro
 			valores.append(int(strLida.split(' ', 1)[1]))
@@ -202,6 +211,7 @@ try:
 			strLida = raw_input()
 			
 		elif strLida.split(' ', 1)[0] == "mult":
+			Imid.append(len(C))
 			#concatena a string lida do ficheiro com o numero de operaçoes "add" antes desta operacao "mult"
 			ops.append( strLida + " " + str(contaAdd))
 			nRaizes += 1 
@@ -216,7 +226,12 @@ try:
 			strLida = raw_input()
 			
 		elif strLida.split(' ', 1)[0] == "output":
+			N+=1
 			ops.append(strLida)
+			#se o output é mult entao vamos tiralo da lista de Imid, lista de intermedios sem ser inputs ou outputs
+			if ops[int(strLida.split(' ', 2)[1]) -1].split(' ',1)[0] == "mult":
+				nAdds = int(ops[int(strLida.split(' ', 2)[1]) -1].split(' ',3)[3])
+				Imid.remove((int(strLida.split(' ', 2)[1]) -1) - nAdds)
 			outPut = valores[int(strLida.split(' ', 2)[1]) -1]
 			condicao = False
 		else:
@@ -246,11 +261,137 @@ for i in range(0,len(V)):
 
 p = resV * resW - resY
 
+
+#print ops
+#print valores
+#print outPut
+
+
 # p%t se der zero entao t divide p
 print p % t
 
+h = p / t
+
+
+#print V
+#print V[0](10)
+
+
+p = 8780710799663312522437781984754049815806883199414208211028653399266475630880222957078625179422662221423155858769582317459277713367317481324925129998224791
+cof = 12016012264891146079388821366740534204802954401251311822919615131047207289359704531102844802183906537786776
 
 
 
+#def. da curva e ponto base:
+F = FiniteField ( p )
+E=EllipticCurve(F,[1,0])
+# a basePoint of order r
+g = cof*E.random_point()
+
+
+#variaveis que serao usadas no pairing
+F2=GF(p**2, name='alpha',modulus=ZZ['x']('x^2+1'));
+E2 = E.change_ring(F2)
+
+alpha = F2.gen()
+
+#print F2.random_element()
+
+
+EK = [] # evaluation key
+VK = [] # verification key
+
+#inicializar variaveis com valores aleatorios de Zn
+rv = Zn.random_element()
+rw = Zn.random_element()
+ry = rv * rw
+s = Zn.random_element()
+alfa_v = Zn.random_element()
+alfa_w = Zn.random_element()
+alfa_y = Zn.random_element()
+beta = Zn.random_element()
+omga = Zn.random_element()
+gv = ZZ(rv) * g
+gw = ZZ(rw) * g
+gy = ZZ(ry) * g
+
+
+#print Imid
+
+#construir EK (ver nota do EK[7])
+for i in range(0,8):
+	EK.append([])
+
+for i in range(1,nRaizes+1):
+	EK[6].append(ZZ(s**i) * g) #s**i é para por  o ZZ(s) ou deixar como ta? (ver isto)
+
+for k in Imid:
+	EK[0].append(ZZ(V[k](ZZ(s))) * gv)
+	EK[1].append(ZZ(W[k](ZZ(s))) * gw)
+	EK[2].append(ZZ(Y[k](ZZ(s))) * gy)
+	EK[3].append(ZZ(alfa_v) * ZZ(V[k](ZZ(s))) * gv)
+	EK[4].append(ZZ(alfa_w) * ZZ(W[k](ZZ(s))) * gw)
+	EK[5].append(ZZ(alfa_y) * ZZ(Y[k](ZZ(s))) * gy)
+	EK[7].append((ZZ(beta) * ZZ(V[k](ZZ(s))) * gv) + (ZZ(beta) * ZZ(W[k](ZZ(s))) * gw) + (ZZ(beta) * ZZ(Y[k](ZZ(s))) * g)) # aqui é feita a soma pq nao aceita a mutiplicaçao de dois pontos da curva ellitica, é para fazer com adiçao??
+
+#contruir VK
+VK.append(g)
+VK.append(ZZ(alfa_v) * g)
+VK.append(ZZ(alfa_w) * g)
+VK.append(ZZ(alfa_y) * g)
+VK.append(ZZ(omga) * g)
+VK.append(ZZ(beta) * ZZ(omga) * g)
+VK.append(ZZ(t(ZZ(s))) * gy)
+
+aux = []
+for k in range(0,N):
+	aux.append([ZZ(V[k](ZZ(s))) * gv,ZZ(W[k](ZZ(s))) * gw,ZZ(Y[k](ZZ(s))) * gy])
+VK.append(aux)
+
+
+#compute (ver a ultima linha da proof,está a ser usado adiçao em vez de mutiplicaçao,no pdf usa mutiplicaçao..)
+
+Vmid = 0
+Wmid = 0
+Ymid = 0
+for k in Imid:
+	Vmid += ZZ(C[k]) * ZZ(V[k](ZZ(s)))
+	Wmid += ZZ(C[k]) * ZZ(W[k](ZZ(s)))
+	Ymid += ZZ(C[k]) * ZZ(Y[k](ZZ(s)))
+
+proof = []
+
+proof.append(Vmid * gv)
+proof.append(Wmid * gw)
+proof.append(Ymid * gy)
+proof.append(ZZ(h(ZZ(s))) * g)
+proof.append(ZZ(alfa_v) * Vmid * gv)
+proof.append(ZZ(alfa_w) * Wmid * gw)
+proof.append(ZZ(alfa_y) * Ymid * gy)
+proof.append((ZZ(beta) * Vmid * gv) + (ZZ(beta) * Wmid * gw) + (ZZ(beta) * Ymid * gy))
+
+
+
+#verify
+
+g_vio = ZZ(V[0](ZZ(s))) * gv * ZZ(C[0])
+g_wio = ZZ(W[0](ZZ(s))) * gw * ZZ(C[0])
+g_yio = ZZ(Y[0](ZZ(s))) * gy * ZZ(C[0])
+
+for k in range(1,N):
+	g_vio += ZZ(V[k](ZZ(s))) * gv * ZZ(C[k])
+	g_wio += ZZ(W[k](ZZ(s))) * gw * ZZ(C[k])
+	g_yio += ZZ(Y[k](ZZ(s))) * gy * ZZ(C[k])
+
+#ponto 1 do verify
+print pairing((0*gv)+g_vio+proof[0],(0*gw)+g_wio+proof[1])==pairing(VK[6],proof[3]) * pairing((0*gy)+g_yio+proof[2],g)
+
+#ponto 2 do verify
+print pairing(proof[4],g)==pairing(proof[0],VK[1])
+print pairing(proof[5],g)==pairing(proof[1],VK[2])
+print pairing(proof[6],g)==pairing(proof[2],VK[3])
+
+#ponto 3 do verify
+print pairing(proof[7],VK[4])==pairing(proof[0]+proof[1]+proof[2],VK[5])
 
 
