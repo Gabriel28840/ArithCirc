@@ -11,7 +11,7 @@ def construirT(listaRaizes):
 	x = var('x')
 	t = 0
 	t = prod((x - ri) for ri in listaRaizes)
-	return t
+	return P(t)
 
 
 def construirConjPolinomios(ops,V,W,Y,nRaizes):
@@ -171,8 +171,9 @@ Y = []
 
 
 r = 730750818665451621361119245571504901405976559617
+Fr = GF(r)
 Zn = IntegerModRing(r)
-P = PolynomialRing(QQ, 'x') 
+P = PolynomialRing(Fr, 'x') 
 
 condicao = True # condicao do ciclo que vai receber as linhas de texto do ficheiro
 outPut = None # se no fim outPut for None então algo correu mal ou entao nao foi encontrada a operacao output
@@ -269,9 +270,11 @@ p = resV * resW - resY
 
 # p%t se der zero entao t divide p
 print p % t
+print p,p/t
 
 h = p / t
 
+#print h
 
 #print V
 #print V[0](10)
@@ -302,18 +305,20 @@ EK = [] # evaluation key
 VK = [] # verification key
 
 #inicializar variaveis com valores aleatorios de Zn
-rv = Zn.random_element()
-rw = Zn.random_element()
+rv = Fr.random_element()
+rw = Fr.random_element()
 ry = rv * rw
-s = Zn.random_element()
-alfa_v = Zn.random_element()
-alfa_w = Zn.random_element()
-alfa_y = Zn.random_element()
-beta = Zn.random_element()
-omga = Zn.random_element()
+s = Fr.random_element()
+alfa_v = Fr.random_element()
+alfa_w = Fr.random_element()
+alfa_y = Fr.random_element()
+beta = Fr.random_element()
+omga = Fr.random_element()
 gv = ZZ(rv) * g
 gw = ZZ(rw) * g
 gy = ZZ(ry) * g
+
+print r*gv
 
 
 #print Imid
@@ -374,17 +379,17 @@ proof.append((ZZ(beta) * Vmid * gv) + (ZZ(beta) * Wmid * gw) + (ZZ(beta) * Ymid 
 
 #verify
 
-g_vio = ZZ(V[0](ZZ(s))) * gv * ZZ(C[0])
-g_wio = ZZ(W[0](ZZ(s))) * gw * ZZ(C[0])
-g_yio = ZZ(Y[0](ZZ(s))) * gy * ZZ(C[0])
+g_vio = ZZ(V[0](s)) * gv * ZZ(C[0])
+g_wio = ZZ(W[0](s)) * gw * ZZ(C[0])
+g_yio = ZZ(Y[0](s)) * gy * ZZ(C[0])
 
 for k in range(1,N):
-	g_vio += ZZ(V[k](ZZ(s))) * gv * ZZ(C[k])
-	g_wio += ZZ(W[k](ZZ(s))) * gw * ZZ(C[k])
-	g_yio += ZZ(Y[k](ZZ(s))) * gy * ZZ(C[k])
+	g_vio += ZZ(V[k](s)) * gv * ZZ(C[k])
+	g_wio += ZZ(W[k](s)) * gw * ZZ(C[k])
+	g_yio += ZZ(Y[k](s)) * gy * ZZ(C[k])
 
 #ponto 1 do verify
-print pairing((0*gv)+g_vio+proof[0],(0*gw)+g_wio+proof[1])==pairing(VK[6],proof[3]) * pairing((0*gy)+g_yio+proof[2],g)
+print pairing(g_vio+proof[0],g_wio+proof[1])==pairing(VK[6],proof[3]) * pairing(g_yio+proof[2],g)
 
 #ponto 2 do verify
 print pairing(proof[4],g)==pairing(proof[0],VK[1])
