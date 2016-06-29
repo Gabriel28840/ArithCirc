@@ -13,7 +13,51 @@ def construirT(listaRaizes):
 	t = prod((x - ri) for ri in listaRaizes)
 	return P(t)
 
+#constroi a prova
+def construirProof():
+	proof.append(Vmid * gv)
+	proof.append(Wmid * gw)
+	proof.append(Ymid * gy)
+	proof.append(ZZ(h(ZZ(s))) * g)
+	proof.append(ZZ(alfa_v) * Vmid * gv)
+	proof.append(ZZ(alfa_w) * Wmid * gw)
+	proof.append(ZZ(alfa_y) * Ymid * gy)
+	proof.append((ZZ(beta) * Vmid * gv) + (ZZ(beta) * Wmid * gw) + (ZZ(beta) * Ymid * gy))
 
+#constroi a evaluation key
+def construirEK():
+	for i in range(0,8):
+		EK.append([])
+
+	for i in range(1,nRaizes+1):
+		EK[6].append(ZZ(s**i) * g)
+
+	for k in Imid:
+		EK[0].append(ZZ(V[k](ZZ(s))) * gv)
+		EK[1].append(ZZ(W[k](ZZ(s))) * gw)
+		EK[2].append(ZZ(Y[k](ZZ(s))) * gy)
+		EK[3].append(ZZ(alfa_v) * ZZ(V[k](ZZ(s))) * gv)
+		EK[4].append(ZZ(alfa_w) * ZZ(W[k](ZZ(s))) * gw)
+		EK[5].append(ZZ(alfa_y) * ZZ(Y[k](ZZ(s))) * gy)
+		EK[7].append((ZZ(beta) * ZZ(V[k](ZZ(s))) * gv) + (ZZ(beta) * ZZ(W[k](ZZ(s))) * gw) + (ZZ(beta) * ZZ(Y[k](ZZ(s))) * g))
+
+#constroi a verification key
+def construirVK():
+	VK.append(g)
+	VK.append(ZZ(alfa_v) * g)
+	VK.append(ZZ(alfa_w) * g)
+	VK.append(ZZ(alfa_y) * g)
+	VK.append(ZZ(omga) * g)
+	VK.append(ZZ(beta) * ZZ(omga) * g)
+	VK.append(ZZ(t(ZZ(s))) * gy)
+
+	aux = []
+	for k in range(0,N):
+		aux.append([ZZ(V[k](ZZ(s))) * gv,ZZ(W[k](ZZ(s))) * gw,ZZ(Y[k](ZZ(s))) * gy])
+	VK.append(aux)
+
+
+#ira construir V,W,Y
 def construirConjPolinomios(ops,V,W,Y,nRaizes):
 	contaRaiz = 0 #diz-nos qual gate de mutiplicacao (raiz) estamos
 	contaOps = 0 # conta operaçoes de input e multiplicacao, indica em qual indice dos vetores V,W e Y os polinomios relativos a cada input e mutiplicacao devem ser colocados
@@ -164,12 +208,12 @@ def construirConjPolinomios(ops,V,W,Y,nRaizes):
 
 
 
+							#main function
+
 #conjunto de polinomios
 V = []
 W = []
 Y = []
-
-
 r = 730750818665451621361119245571504901405976559617
 Fr = GF(r)
 Zn = IntegerModRing(r)
@@ -182,10 +226,12 @@ ops = [] # vetor que guarda as operaçoes vindas do ficheiro (operaçoes são: i
 valores = [] # valores de todas as operacoes
 C = [] # valores dos inputs e dos resultados das multiplicacoes, ira ser usado na construcaao do polinomio p
 Imid = [] #guarda os indices das operacoes de mult que nao sao inputs nem outputs
-nRaizes = 0
-contaAdd = 0
-N = 0
+nRaizes = 0 #numero de raizes 
+contaAdd = 0 #conta o numero de gates "+" antes de uma determinada gate "*" (é importante para calculos futuros)
+N = 0 #numero de inputs + numero de outputs 
 
+
+#vai ler o que vem do ficheiro
 try:
 	strLida = raw_input()
 	while condicao :
@@ -262,28 +308,13 @@ for i in range(0,len(V)):
 
 p = resV * resW - resY
 
-
-#print ops
-#print valores
-#print outPut
-
-
 # p%t se der zero entao t divide p
 print p % t
-print p,p/t
 
 h = p / t
 
-#print h
-
-#print V
-#print V[0](10)
-
-
 p = 8780710799663312522437781984754049815806883199414208211028653399266475630880222957078625179422662221423155858769582317459277713367317481324925129998224791
 cof = 12016012264891146079388821366740534204802954401251311822919615131047207289359704531102844802183906537786776
-
-
 
 #def. da curva e ponto base:
 F = FiniteField ( p )
@@ -291,20 +322,16 @@ E=EllipticCurve(F,[1,0])
 # a basePoint of order r
 g = cof*E.random_point()
 
-
 #variaveis que serao usadas no pairing
 F2=GF(p**2, name='alpha',modulus=ZZ['x']('x^2+1'));
 E2 = E.change_ring(F2)
 
 alpha = F2.gen()
 
-#print F2.random_element()
-
-
 EK = [] # evaluation key
 VK = [] # verification key
 
-#inicializar variaveis com valores aleatorios de Zn
+#inicializar variaveis com valores aleatorios
 rv = Fr.random_element()
 rw = Fr.random_element()
 ry = rv * rw
@@ -318,43 +345,14 @@ gv = ZZ(rv) * g
 gw = ZZ(rw) * g
 gy = ZZ(ry) * g
 
-print r*gv
+#construir EK
+construirEK()
+
+#construir VK
+construirVK()
 
 
-#print Imid
-
-#construir EK (ver nota do EK[7])
-for i in range(0,8):
-	EK.append([])
-
-for i in range(1,nRaizes+1):
-	EK[6].append(ZZ(s**i) * g) #s**i é para por  o ZZ(s) ou deixar como ta? (ver isto)
-
-for k in Imid:
-	EK[0].append(ZZ(V[k](ZZ(s))) * gv)
-	EK[1].append(ZZ(W[k](ZZ(s))) * gw)
-	EK[2].append(ZZ(Y[k](ZZ(s))) * gy)
-	EK[3].append(ZZ(alfa_v) * ZZ(V[k](ZZ(s))) * gv)
-	EK[4].append(ZZ(alfa_w) * ZZ(W[k](ZZ(s))) * gw)
-	EK[5].append(ZZ(alfa_y) * ZZ(Y[k](ZZ(s))) * gy)
-	EK[7].append((ZZ(beta) * ZZ(V[k](ZZ(s))) * gv) + (ZZ(beta) * ZZ(W[k](ZZ(s))) * gw) + (ZZ(beta) * ZZ(Y[k](ZZ(s))) * g)) # aqui é feita a soma pq nao aceita a mutiplicaçao de dois pontos da curva ellitica, é para fazer com adiçao??
-
-#contruir VK
-VK.append(g)
-VK.append(ZZ(alfa_v) * g)
-VK.append(ZZ(alfa_w) * g)
-VK.append(ZZ(alfa_y) * g)
-VK.append(ZZ(omga) * g)
-VK.append(ZZ(beta) * ZZ(omga) * g)
-VK.append(ZZ(t(ZZ(s))) * gy)
-
-aux = []
-for k in range(0,N):
-	aux.append([ZZ(V[k](ZZ(s))) * gv,ZZ(W[k](ZZ(s))) * gw,ZZ(Y[k](ZZ(s))) * gy])
-VK.append(aux)
-
-
-#compute (ver a ultima linha da proof,está a ser usado adiçao em vez de mutiplicaçao,no pdf usa mutiplicaçao..)
+							#compute 
 
 Vmid = 0
 Wmid = 0
@@ -364,20 +362,13 @@ for k in Imid:
 	Wmid += ZZ(C[k]) * ZZ(W[k](ZZ(s)))
 	Ymid += ZZ(C[k]) * ZZ(Y[k](ZZ(s)))
 
+#contruir a prova
 proof = []
-
-proof.append(Vmid * gv)
-proof.append(Wmid * gw)
-proof.append(Ymid * gy)
-proof.append(ZZ(h(ZZ(s))) * g)
-proof.append(ZZ(alfa_v) * Vmid * gv)
-proof.append(ZZ(alfa_w) * Wmid * gw)
-proof.append(ZZ(alfa_y) * Ymid * gy)
-proof.append((ZZ(beta) * Vmid * gv) + (ZZ(beta) * Wmid * gw) + (ZZ(beta) * Ymid * gy))
+construirProof()
 
 
 
-#verify
+							#verify
 
 g_vio = ZZ(V[0](s)) * gv * ZZ(C[0])
 g_wio = ZZ(W[0](s)) * gw * ZZ(C[0])
