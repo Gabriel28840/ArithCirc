@@ -229,6 +229,7 @@ Imid = [] #guarda os indices das operacoes de mult que nao sao inputs nem output
 nRaizes = 0 #numero de raizes 
 contaAdd = 0 #conta o numero de gates "+" antes de uma determinada gate "*" (é importante para calculos futuros)
 N = 0 #numero de inputs + numero de outputs 
+N_inputs = 0
 
 
 #vai ler o que vem do ficheiro
@@ -237,6 +238,7 @@ try:
 	while condicao :
 		# [0] = "input"            [1] = valor do input
 		if strLida.split(' ', 1)[0] == "input":
+			N_inputs+=1
 			N+=1
 			ops.append(strLida)
 			# vai buscar o valor do input e passa para inteiro
@@ -280,6 +282,7 @@ try:
 				nAdds = int(ops[int(strLida.split(' ', 2)[1]) -1].split(' ',3)[3])
 				Imid.remove((int(strLida.split(' ', 2)[1]) -1) - nAdds)
 			outPut = valores[int(strLida.split(' ', 2)[1]) -1]
+			indice_outPut = int(strLida.split(' ', 2)[1]) -1 - nAdds#diz o indice em que esta o output
 			condicao = False
 		else:
 			print "Operacao nao conhecida (operacao recebida do ficheiro nao e input,add, ou mult)"
@@ -311,7 +314,12 @@ p = resV * resW - resY
 # p%t se der zero entao t divide p
 print p % t
 
+#print "p = " + str(p)
+#print "t = " + str(t)
+
 h = p / t
+
+#print "h = " + str(h)
 
 p = 8780710799663312522437781984754049815806883199414208211028653399266475630880222957078625179422662221423155858769582317459277713367317481324925129998224791
 cof = 12016012264891146079388821366740534204802954401251311822919615131047207289359704531102844802183906537786776
@@ -374,10 +382,14 @@ g_vio = ZZ(V[0](s)) * gv * ZZ(C[0])
 g_wio = ZZ(W[0](s)) * gw * ZZ(C[0])
 g_yio = ZZ(Y[0](s)) * gy * ZZ(C[0])
 
-for k in range(1,N):
+for k in range(1,N_inputs):
 	g_vio += ZZ(V[k](s)) * gv * ZZ(C[k])
 	g_wio += ZZ(W[k](s)) * gw * ZZ(C[k])
 	g_yio += ZZ(Y[k](s)) * gy * ZZ(C[k])
+
+g_vio += ZZ(V[indice_outPut](s)) * gv * ZZ(C[indice_outPut])
+g_wio += ZZ(W[indice_outPut](s)) * gw * ZZ(C[indice_outPut])
+g_yio += ZZ(Y[indice_outPut](s)) * gy * ZZ(C[indice_outPut])
 
 #ponto 1 do verify
 print pairing(g_vio+proof[0],g_wio+proof[1])==pairing(VK[6],proof[3]) * pairing(g_yio+proof[2],g)
@@ -389,5 +401,6 @@ print pairing(proof[6],g)==pairing(proof[2],VK[3])
 
 #ponto 3 do verify
 print pairing(proof[7],VK[4])==pairing(proof[0]+proof[1]+proof[2],VK[5])
+
 
 
